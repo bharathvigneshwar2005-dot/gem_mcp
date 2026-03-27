@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: gem-mcp-server
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI
+        sync: false  # Set manually in Render dashboard
+      - key: MONGODB_DB
+        value: gem_mcp
