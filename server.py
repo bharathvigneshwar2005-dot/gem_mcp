@@ -34,6 +34,7 @@ from starlette.routing import Mount, Route
 from starlette.responses import JSONResponse
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 import gem_scraper
 
@@ -85,6 +86,7 @@ Tips:
 """,
     stateless_http=True,
     json_response=True,
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
 
 
@@ -563,15 +565,16 @@ async def lifespan(app: Starlette):
         log.info("MongoDB connection closed")
 
 
-# Configure MCP path to serve at /mcp
-mcp.settings.streamable_http_path = "/"
+# Configure MCP path to exactly /mcp (without trailing slash)
+mcp.settings.streamable_http_path = "/mcp"
+fastmcp_app = mcp.streamable_http_app()
 
-# Build the Starlette app
+# Build the Starlette app by combining our health check with FastMCP's internal routes
+# This avoids using Mount("/mcp", ...), which causes 307 Temporary Redirects for POST requests
 app = Starlette(
     routes=[
         Route("/health", health_check),
-        Mount("/mcp", app=mcp.streamable_http_app()),
-    ],
+    ] + fastmcp_app.routes,
     lifespan=lifespan,
 )
 
